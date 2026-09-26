@@ -1,8 +1,11 @@
+name: ${COMPOSE_PROJECT_NAME:-production-webapp-production}
+
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
     image: production-webapp:production

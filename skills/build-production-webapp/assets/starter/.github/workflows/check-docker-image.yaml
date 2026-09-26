@@ -13,5 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
-      - run: DATABASE_URL=postgresql://postgres.example.com:5432/app REDIS_URL=redis://redis.example.com:6379 PUBLIC_API_URL=https://api.example.com FRONTEND_URL=https://app.example.com docker compose -f docker-compose.production.yml config --quiet
-      - run: docker compose build backend worker frontend
+      - run: docker compose --env-file .env.test.example config --quiet
+      - run: docker compose --env-file .env.production.example -f docker-compose.production.yaml config --quiet
+        env:
+          DATABASE_URL: postgresql://postgres.example.com:5432/app
+          REDIS_URL: redis://redis.example.com:6379
+          PUBLIC_API_URL: https://api.example.com
+          FRONTEND_URL: https://app.example.com
+      - run: docker compose build backend
+      - run: docker compose --env-file .env.production.example -f docker-compose.production.yaml build backend
+        env:
+          DATABASE_URL: postgresql://postgres.example.com:5432/app
+          REDIS_URL: redis://redis.example.com:6379
+          PUBLIC_API_URL: https://api.example.com
+          FRONTEND_URL: https://app.example.com

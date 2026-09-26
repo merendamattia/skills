@@ -1,6 +1,6 @@
 ---
 name: build-production-webapp
-description: Build, extend, or review production full-stack web applications using the LocalRise-derived Bun, Next.js App Router, React, Hono RPC, Zod, Prisma PostgreSQL, Better Auth, BullMQ, Redis, TanStack Query, shadcn/ui, Docker Compose, GitHub Actions, pre-commit, and Conventional Commits architecture. Use for English or Italian requests such as "build a web app", "create a full-stack app", "creami una web app", project scaffolding, backend/frontend architecture, authentication, database design, caching, asynchronous jobs or workers, CI/CD, Docker, or production-readiness work. Enforce durable database-first queue handoff and worker-only execution for every operation modeled as a job or run.
+description: Build, extend, and review production full-stack web apps with Bun, Next.js, React, Hono, Prisma/PostgreSQL, Better Auth, BullMQ/Redis, TanStack Query, shadcn/ui, Docker Compose, Codex workers, GitHub Actions, and Conventional Commits. Use for app scaffolding, frontend and backend work, authentication, data, asynchronous jobs, deployment, and production readiness. Keep job state durable in PostgreSQL and execute jobs only in workers.
 ---
 
 # Build Production Web App
@@ -95,6 +95,13 @@ Always create two standalone Compose files:
 
 Keep both files independently runnable; do not make production an override of the local file.
 Document the exact local and production commands and test both resolved service graphs.
+
+Maintain `.env.example`, `.env.test.example`, and `.env.production.example`. Local Compose must
+resolve and start with its safe development defaults; the test example must use its own Compose
+project name, database, Redis, and host ports. The production example must leave secrets and
+external service URLs unset until the deployer provides them. Keep real environment files out of
+Git. Build Next.js with `NODE_ENV=production`, including in CI, while integration tests use
+`NODE_ENV=test` and `APP_ENV=test`.
 
 ## Local Bun contract
 

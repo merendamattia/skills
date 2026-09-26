@@ -51,6 +51,12 @@ the service graphs independently with `docker compose config --services` and
 `prisma migrate deploy` before startup. Frontend public API URLs are build-time values and require
 rebuild after change.
 
+Keep `.env.example` for local development, `.env.test.example` for an isolated local test stack,
+and `.env.production.example` for deployment. The test stack uses its own Compose project name,
+database, Redis, and host ports. Production URLs and secrets remain required values without
+committed defaults. Run tests with `NODE_ENV=test`; override it with `NODE_ENV=production` for the
+Next.js build step in CI.
+
 Namespace queues, cache keys, database test data, and volumes by `APP_ENV`. Test runs explicitly
 set test environment and mock providers when providers exist. Never let a developer `.env` alter
 the test contract.
@@ -61,8 +67,10 @@ Keep separate checks for application quality, Docker/Compose, Conventional Commi
 and semantic release. Integration CI uses real PostgreSQL and Redis services and applies migrations
 before tests. Auto-assign configuration must not hardcode a copied repository owner.
 
-Semantic Release and auto-assignment require GitHub events/secrets; do not simulate a release
-locally or claim those workflows passed before push.
+Semantic Release and auto-assignment require GitHub events and the relevant repository
+permissions. The built-in GitHub token covers ordinary release creation; a protected branch may
+require a separate token permitted to push release commits. Do not claim those workflows passed
+before they have run on GitHub.
 
 ## Commits
 

@@ -1,0 +1,131 @@
+name: Skill and starter CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  skill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r skills/build-production-webapp/assets/starter/requirements.txt
+      - run: pre-commit run --all-files --config skills/build-production-webapp/assets/starter/.pre-commit-config.yaml
+      - run: mkdir -p "$RUNNER_TEMP/skill-install"
+      - name: Install for Claude Code, Codex, and OpenCode
+        working-directory: ${{ runner.temp }}/skill-install
+        run: npx --yes skills@1.7.0 add "$GITHUB_WORKSPACE" --skill build-production-webapp --agent claude-code --agent codex --agent opencode --copy -y
+      - name: Check installed files
+        run: |
+          test -f "$RUNNER_TEMP/skill-install/.claude/skills/build-production-webapp/SKILL.md"
+          test -f "$RUNNER_TEMP/skill-install/.agents/skills/build-production-webapp/SKILL.md"
+          test -f "$RUNNER_TEMP/skill-install/.agents/skills/build-production-webapp/assets/starter/Dockerfile"
+
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: webiny/action-conventional-commits@v1.3.0
+        with:
+          allowed-commit-types: "feat,fix,docs,style,refactor,test,chore,ci,build,perf,ops,merge,revert"
+
+  starter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/build-production-webapp/assets/starter
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: production_webapp_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d production_webapp_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      APP_ENV: test
+      NODE_ENV: test
+      RUN_INTEGRATION: "1"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/production_webapp_test
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:17421
+      FRONTEND_URL: http://localhost:17420
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: ci-only-admin-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: {bun-version: 1.3.14}
+      - run: bun install --frozen-lockfile
+      - run: bun run db:generate
+      - run: bun run db:deploy
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run test
+      - run: bun run build
+        env:
+          NODE_ENV: production
+
+  docker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/build-production-webapp/assets/starter
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve local and test Compose
+        run: |
+          docker compose config --quiet
+          docker compose --env-file .env.test.example config --quiet
+      - name: Resolve production Compose
+        run: docker compose --env-file .env.production.example -f docker-compose.production.yaml config --quiet
+        env:
+          DATABASE_URL: postgresql://postgres.example.com:5432/app
+          REDIS_URL: redis://redis.example.com:6379
+          BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+          PUBLIC_API_URL: https://api.example.com
+          FRONTEND_URL: https://app.example.com
+          ADMIN_PASSWORD: ci-only-admin-password
+      - run: docker compose build backend
+      - run: docker compose --env-file .env.production.example -f docker-compose.production.yaml build backend
+        env:
+          DATABASE_URL: postgresql://postgres.example.com:5432/app
+          REDIS_URL: redis://redis.example.com:6379
+          BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+          PUBLIC_API_URL: https://api.example.com
+          FRONTEND_URL: https://app.example.com
+          ADMIN_PASSWORD: ci-only-admin-password
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [skill, commits, starter, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: cycjimmy/semantic-release-action@v4
+        env:
+          GH_TOKEN: ${{ github.token }}
