@@ -1,0 +1,23 @@
+name: Conventional Commits Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+jobs:
+  conventional-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: webiny/action-conventional-commits@v1.3.0
+        with:
+          allowed-commit-types: "feat,fix,docs,style,refactor,test,chore,ci,build,perf,ops,merge,revert"
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt
+      - run: pre-commit run --all-files

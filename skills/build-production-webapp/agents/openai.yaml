@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Production Web App"
+  short_description: "Build a production full-stack web application"
+  default_prompt: "Use $build-production-webapp to build a production-ready web app from this product brief."

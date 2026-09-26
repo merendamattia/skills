@@ -1,0 +1,17 @@
+name: Check Docker images
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  docker-test:
+    runs-on: ubuntu-latest
+    env:
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+      ADMIN_PASSWORD: ci-only-admin-password
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: DATABASE_URL=postgresql://postgres.example.com:5432/app REDIS_URL=redis://redis.example.com:6379 PUBLIC_API_URL=https://api.example.com FRONTEND_URL=https://app.example.com docker compose -f docker-compose.production.yml config --quiet
+      - run: docker compose build backend worker frontend

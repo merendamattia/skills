@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-production_webapp}
+      POSTGRES_USER: ${POSTGRES_USER:-production_webapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-production_webapp}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:${POSTGRES_PORT:-17432}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-production_webapp} -d ${POSTGRES_DB:-production_webapp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes: [redis_data:/data]
+    ports: ["127.0.0.1:${REDIS_PORT:-17479}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:17421}
+    image: production-webapp:local
+    working_dir: /app
+    environment: &app_environment
+      APP_ENV: ${APP_ENV:-local}
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-production_webapp}:${POSTGRES_PASSWORD:-production_webapp}@postgres:5432/${POSTGRES_DB:-production_webapp}
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
+      BETTER_AUTH_URL: ${PUBLIC_API_URL:-http://localhost:17421}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:17420}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      QUEUE_CONCURRENCY: ${QUEUE_CONCURRENCY:-2}
+      WORKER_ID: ${WORKER_ID:-local-worker-1}
+      HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-10000}
+      STALE_JOB_THRESHOLD: ${STALE_JOB_THRESHOLD:-60000}
+      PORT: 17421
+    command: ["sh", "-c", "bun run --cwd src/backend db:deploy && bun run --cwd src/backend dev"]
+    ports: ["${BACKEND_PORT:-17421}:17421"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://localhost:17421/api/health');process.exit(r.ok?0:1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - ./src/backend:/app/src/backend
+
+  worker:
+    image: production-webapp:local
+    working_dir: /app
+    command: ["bun", "run", "--cwd", "src/backend", "worker"]
+    environment: *app_environment
+    depends_on: {backend: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/production-webapp-worker.heartbeat -mmin -1 | grep -q ."]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./src/backend:/app/src/backend
+
+  frontend:
+    image: production-webapp:local
+    working_dir: /app
+    command: ["bun", "run", "--cwd", "src/frontend", "dev"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:17421}
+      PORT: 17420
+    ports: ["${FRONTEND_PORT:-17420}:17420"]
+    depends_on: {backend: {condition: service_healthy}}
+    volumes:
+      - ./src/frontend:/app/src/frontend
+
+volumes:
+  postgres_data:
+  redis_data:

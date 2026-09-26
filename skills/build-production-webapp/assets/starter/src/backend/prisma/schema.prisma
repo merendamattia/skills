@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String     @id
+  name            String
+  email           String     @unique
+  emailVerified   Boolean    @default(false)
+  image            String?
+  username         String?    @unique
+  displayUsername String?
+  role             String     @default("user")
+  banned           Boolean    @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  items            Item[]
+  jobs             AppJob[]
+  auditLogs         AuditLog[]
+
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("item")
+}
+
+enum AppJobStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  RETRYING
+  COMPLETED
+  FAILED
+  CANCELLED
+  STALE
+}
+
+model AppJob {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  environment  String
+  kind         String       @default("EXAMPLE")
+  status       AppJobStatus @default(PENDING)
+  input        Json         @db.JsonB
+  result       Json?        @db.JsonB
+  queueJobId   String?      @unique
+  workerId     String?
+  attempts     Int          @default(0)
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+  queuedAt     DateTime?
+  startedAt    DateTime?
+  heartbeatAt  DateTime?
+  completedAt  DateTime?
+  failedAt     DateTime?
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([environment, status, createdAt])
+  @@map("app_job")
+}
+
+model ServiceHeartbeat {
+  id          String   @id @default(cuid())
+  serviceName String
+  environment String
+  instanceId  String
+  metadata    Json?    @db.JsonB
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([serviceName, environment, instanceId])
+  @@index([environment, lastSeenAt])
+  @@map("service_heartbeat")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  requestId  String
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  method     String
+  path       String
+  statusCode Int
+  ipAddress  String?
+  userAgent  String?
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_log")
+}

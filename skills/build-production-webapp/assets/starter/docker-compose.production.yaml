@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+    image: production-webapp:production
+    environment: &app_environment
+      APP_ENV: production
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
+      BETTER_AUTH_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      QUEUE_CONCURRENCY: ${QUEUE_CONCURRENCY:-2}
+      WORKER_ID: ${WORKER_ID:-production-worker-1}
+      HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-10000}
+      STALE_JOB_THRESHOLD: ${STALE_JOB_THRESHOLD:-60000}
+      PORT: 17421
+    command: ["sh", "-c", "bun run db:deploy && bun run start"]
+    expose: ["17421"]
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://localhost:17421/api/health');process.exit(r.ok?0:1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    image: production-webapp:production
+    command: ["bun", "run", "worker"]
+    environment: *app_environment
+    depends_on: {backend: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/production-webapp-worker.heartbeat -mmin -1 | grep -q ."]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: production-webapp:production
+    working_dir: /app
+    command: ["bun", "run", "--cwd", "src/frontend", "start"]
+    environment: {PORT: 17420}
+    expose: ["17420"]
+    depends_on: {backend: {condition: service_healthy}}

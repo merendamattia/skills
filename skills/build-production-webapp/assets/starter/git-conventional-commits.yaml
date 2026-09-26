@@ -1,0 +1,9 @@
+---
+convention:
+  commitTypes: [feat, fix, refactor, perf, style, test, build, ops, ci, docs, chore, merge, revert]
+  commitScopes: []
+  releaseTagGlobPattern: v[0-9]*.[0-9]*.[0-9]*
+changelog:
+  commitTypes: [feat, fix, perf, merge]
+  includeInvalidCommits: true
+  commitIgnoreRegexPattern: "^WIP "

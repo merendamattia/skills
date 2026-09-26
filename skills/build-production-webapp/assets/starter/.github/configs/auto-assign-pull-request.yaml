@@ -1,0 +1,5 @@
+addReviewers: false
+addAssignees: author
+reviewers: []
+numberOfReviewers: 0
+skipKeywords: [wip]

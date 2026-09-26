@@ -1,0 +1,20 @@
+{
+  "name": "production-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "bun@1.3.14",
+  "workspaces": ["src/backend", "src/frontend"],
+  "scripts": {
+    "dev": "bun run dev:backend & bun run dev:worker & bun run dev:frontend & wait",
+    "dev:backend": "bun --filter production-webapp-backend dev",
+    "dev:worker": "bun --filter production-webapp-backend worker",
+    "dev:frontend": "bun --filter production-webapp-frontend dev",
+    "build": "bun --filter '*' build",
+    "test": "bun --filter '*' test",
+    "lint": "bun --filter production-webapp-frontend lint",
+    "typecheck": "bun --filter '*' typecheck",
+    "db:generate": "bun --filter production-webapp-backend db:generate",
+    "db:migrate": "bun --filter production-webapp-backend db:migrate",
+    "db:deploy": "bun --filter production-webapp-backend db:deploy"
+  }
+}
