@@ -142,6 +142,11 @@ PostgreSQL; cache errors become misses/no-ops, never data loss.
 
 ## Finish every task
 
+For every user-visible frontend change, run the app and verify the affected UI in a browser.
+Capture and inspect screenshots at desktop and mobile widths, including changed interaction states
+such as open menus or dialogs. Follow [references/frontend.md](references/frontend.md) for the
+visual review; report any view that could not be checked and why.
+
 Run targeted checks first, then every relevant repository workflow command. Inspect both
 Dockerfiles, the port ledger, resolved Compose graphs, and the local Bun path. Preserve unrelated
 changes, and create one coherent Conventional Commit at a time only when the user authorized

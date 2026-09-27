@@ -23,6 +23,13 @@ The browser talks only to Hono HTTP. Prisma lives behind repositories. Services 
 rules, cache invalidation, and queues. PostgreSQL is authoritative. Redis cache failures become
 misses, but BullMQ requires Redis. Validate untrusted input with Zod and authorize in the backend.
 
+## Frontend visual checks
+
+For every user-visible frontend change, run the app, open the affected UI in a browser, exercise
+changed interactions, and capture and inspect desktop and mobile screenshots. Check responsive
+layout, styling, accessibility basics, and consistency with existing UI patterns. Fix visible
+issues, then inspect again. Report any view that could not be verified.
+
 ## Validation and commits
 
 Run targeted tests, then typecheck, lint, relevant tests, build, smoke, image build, and cross-service

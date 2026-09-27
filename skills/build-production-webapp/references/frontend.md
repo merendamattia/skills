@@ -34,6 +34,17 @@ result at mobile and desktop widths.
 - Put `data-icon` on button icons and let the component size them.
 - Build a product-specific visual direction; never copy LocalRise colors or branding.
 
+## Visual verification
+
+After every user-visible frontend change, run the app and open each affected page or component in
+a browser. Exercise changed interactions, including menus, dialogs, forms, and their relevant
+open, closed, loading, empty, and error states. Capture and inspect screenshots at desktop and
+mobile widths. Check layout, text, spacing, alignment, overflow, contrast, focus, touch targets,
+and consistency with the product's existing UI patterns. Fix visible issues and inspect the result
+again. Use an available browser or screenshot tool; do not add a test dependency solely for this
+review. If a view cannot be opened or captured, report the exact limitation and leave the visual
+check unverified rather than claiming it passed.
+
 ### Component unification contract
 
 - Put cross-product primitives and their variants in the canonical shared component directory
