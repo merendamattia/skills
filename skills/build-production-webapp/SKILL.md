@@ -10,6 +10,14 @@ project before copying the starter. Treat the current repository as authority wh
 
 ## Start every task
 
+Before working, read `.agent-todo.md` in the project root if it exists. For each new user
+request, append an entry preserving its requirements, constraints, and later corrections. Keep
+each entry's status, completed work, decisions, blockers, and next action current. Update it as
+work progresses and before handing off or switching models, so the next agent can resume from it.
+Never put this file in Git: add `.agent-todo.md` to the project's `.gitignore` before creating it
+if needed; new projects copied from the starter already ignore it. Never stage or commit the file.
+Keep credentials and secrets out of it.
+
 1. Read the product brief, repository instructions, manifests, schema, entrypoints, tests,
    Docker files, and workflows before proposing changes.
 2. Write concrete acceptance criteria. Identify trust boundaries, durable data, synchronous

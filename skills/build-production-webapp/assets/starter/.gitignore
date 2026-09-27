@@ -9,3 +9,4 @@ dist/
 !.env.production.example
 *.log
 .DS_Store
+.agent-todo.md

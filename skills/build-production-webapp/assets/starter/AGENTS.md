@@ -1,5 +1,12 @@
 # Production web app agent instructions
 
+## Task continuity
+
+Read `.agent-todo.md` at the start of each task. Append every new user request, including later
+corrections, with its requirements, constraints, status, decisions, completed work, blockers, and
+next action. Update the file as work progresses and before handing off or switching models. It is
+ignored by Git; never commit it or write credentials or secrets to it.
+
 ## Asynchronous jobs
 
 Every operation modeled as a job or run, including mocks, must execute asynchronously. The HTTP
